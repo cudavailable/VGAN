@@ -71,7 +71,7 @@ class Decoder(nn.Module):
 			nn.ConvTranspose2d(in_channels=128, out_channels=64, kernel_size=4, stride=2, padding=1),
 			nn.ReLU(),
 			nn.ConvTranspose2d(in_channels=64, out_channels=input_channel, kernel_size=4, stride=2, padding=1),
-			nn.Tanh(),  # size: (bs, 3, 32, 32) value: [-1, 1]
+			nn.Sigmoid(),  # size: (bs, 3, 32, 32) value: [0, 1]
 		)
 
 	def forward(self, z, c):
@@ -90,7 +90,7 @@ class CVAE(nn.Module):
 		self.dec = Decoder(latent_dim, condition_dim, input_channel)
 
 	def reparameterize(self, mean, log):
-		std = torch.exp(0.5 * log)
+		std = torch.exp(0.5 * log) + 1e-6
 		eps = torch.randn_like(std)
 		return mean + std * eps
 
@@ -106,7 +106,8 @@ class CVAE(nn.Module):
 		return x_recon, m, log
 
 class Discriminator(nn.Module):
-	def __init__(self, in_channel, condition_dim, num_classes):
+	def __init__(self, in_channel, condition_dim):
+		super(Discriminator, self).__init__()
 		self.in_channel = in_channel + condition_dim # 3+10
 		self.mlp = nn.Sequential(
 			nn.Conv2d(in_channels=self.in_channel, out_channels=64, kernel_size=4, stride=2, padding=1),
@@ -115,9 +116,15 @@ class Discriminator(nn.Module):
 			nn.LeakyReLU(0.2),  # (bs, 128, 8, 8)
 			nn.Flatten(),
 			nn.Linear(128*8*8, 1),
-			nn.Sigmoid(),
+			nn.Sigmoid(), # fixed...
 		)
 
 	def forward(self, x, c):
-		c = c.unsqueeze(2).unsqueeze(3).expand(-1, -1, x.size(2), x.size(3)),
-		x =
+		assert x.dim() == 4, "Input x must be 4D tensor (batch, channel, height, width)"
+		assert c.dim() == 2, "Condition c must be 2D tensor (batch, condition_dim)"
+
+		c = c.unsqueeze(2).unsqueeze(3).expand(-1, -1, x.size(2), x.size(3))
+		x = torch.cat([x, c], dim=1)
+		x = self.mlp(x)
+
+		return x
