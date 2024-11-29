@@ -71,13 +71,14 @@ class Decoder(nn.Module):
 			nn.ConvTranspose2d(in_channels=128, out_channels=64, kernel_size=4, stride=2, padding=1),
 			nn.ReLU(),
 			nn.ConvTranspose2d(in_channels=64, out_channels=input_channel, kernel_size=4, stride=2, padding=1),
-			nn.Sigmoid(),  # size: (bs, 3, 32, 32) value: [0, 1]
+			nn.Tanh(),  # size: (bs, 3, 32, 32) value: [0, 1]
 		)
 
 	def forward(self, z, c):
 		z = torch.cat([z, c], dim=1)  # 拼接潜在向量和条件对应的独热编码
 		z = self.dec_input(z).view(-1, 128, 8, 8)
-		x_recon = self.dec_mlp(z)
+		out = self.dec_mlp(z)
+		x_recon = out * 2.065 + 0.075
 
 		return x_recon
 
@@ -116,7 +117,7 @@ class Discriminator(nn.Module):
 			nn.LeakyReLU(0.2),  # (bs, 128, 8, 8)
 			nn.Flatten(),
 			nn.Linear(128*8*8, 1),
-			nn.Sigmoid(), # fixed...
+			nn.Sigmoid(),
 		)
 
 	def forward(self, x, c):

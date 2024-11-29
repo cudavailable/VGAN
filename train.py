@@ -1,12 +1,37 @@
 import os
 import torch
 from torch import nn
-from torchvision.datasets import MNIST, CIFAR10
+from torchvision.datasets import CIFAR10
 from torchvision import transforms
 from torch.utils.data import DataLoader
 
 from model import CVAE, Discriminator
 from logger import Logger
+
+from matplotlib import pyplot as plt
+from inference import denormalize, to_uint8
+from PIL import Image
+
+def test_reverse(x, args):
+	denorm_images = denormalize(x[0:3], mean=args.tran_mean, std=args.tran_std)
+	uint8_images = to_uint8(denorm_images)
+	print(uint8_images[0])
+	plt.figure()
+	for i, img in enumerate(uint8_images):
+		# 如果生成的是 1xHxW，调整为 HxWxC
+		# if img.shape[0] == 3:  # 检查是否为 (3, H, W)
+		# 	img = np.transpose(img, (1, 2, 0))  # 转换为 (H, W, C)
+		#
+		# img = (img * 255).astype(np.uint8)  # 转换为 [0, 255]
+		img = img.permute(1, 2, 0).cpu().numpy()  # 转换为 (H, W, C)
+		img = Image.fromarray(img)
+
+		plt.imshow(img)
+		plt.axis('off')
+		plt.savefig(f'#{i + 1}.png')
+		plt.close()  # 保存后再关闭
+
+	print(f"generated images saved to {args.recon_dir}")
 
 # loss function for cvae
 def loss_G(x_recon, x, mean, log, fake_validity, real_labels, args):
@@ -47,7 +72,7 @@ def train(args):
 	# data preparations
 	transform = transforms.Compose([
 		transforms.ToTensor(),
-		transforms.Normalize((0.4914, 0.4822, 0.4465), (0.247, 0.243, 0.261)),
+		transforms.Normalize(mean=args.tran_mean, std=args.tran_std),
 		# transforms.Lambda(lambda x : x.view(-1)) # flatten the 28x28 image to 1D
 	])
 	cifar = CIFAR10(args.data_dir, train=True, transform=transform, download=True)
@@ -85,6 +110,13 @@ def train(args):
 		for x, y in dataset:
 			x, y = x.to(device), y.to(device)
 			c = nn.functional.one_hot(y, num_classes=args.num_classes).float().to(device) # one-hot encoding
+
+			# test
+			# print(x[0])
+			# print("")
+			# test_reverse(x, args)
+			# exit(0)
+
 
 			""" update Discriminator """
 			if step_counter == 0:
