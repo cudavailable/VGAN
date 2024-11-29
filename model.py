@@ -116,7 +116,7 @@ class Discriminator(nn.Module):
 			nn.Conv2d(in_channels=64, out_channels=128, kernel_size=4, stride=2, padding=1),
 			nn.LeakyReLU(0.2),  # (bs, 128, 8, 8)
 			nn.Flatten(),
-			nn.Linear(128*8*8, 1),
+			nn.Linear(128 * 8 * 8, 1),
 			nn.Sigmoid(),
 		)
 

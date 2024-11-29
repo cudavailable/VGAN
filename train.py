@@ -37,6 +37,10 @@ def test_reverse(x, args):
 def loss_G(x_recon, x, mean, log, fake_validity, real_labels, args):
 	recon_loss = nn.MSELoss()(x_recon, x)
 	kl_div = -0.5 * torch.sum(1 + log - mean.pow(2) - log.exp())
+
+	#test
+	# print(f"fake_validity shape: {fake_validity.shape}, real_labels shape: {real_labels.shape}")
+
 	adv_loss = nn.BCELoss()(fake_validity, real_labels)
 
 	recon_loss *= args.w_recon
@@ -58,6 +62,7 @@ def loss_D(real_validity, real_labels, fake_validity, fake_labels):
 def train(args):
 
 	# logger setup
+	global real_labels
 	if args.log_dir is not None and not os.path.exists(args.log_dir):
 		os.makedirs(args.log_dir)
 	logger = Logger(os.path.join(args.log_dir, "log.txt"))
@@ -71,12 +76,15 @@ def train(args):
 
 	# data preparations
 	transform = transforms.Compose([
+		transforms.RandomHorizontalFlip(),
+    	transforms.RandomRotation(15),
+    	transforms.ColorJitter(brightness=0.2, contrast=0.2, saturation=0.2, hue=0.1),
 		transforms.ToTensor(),
 		transforms.Normalize(mean=args.tran_mean, std=args.tran_std),
 		# transforms.Lambda(lambda x : x.view(-1)) # flatten the 28x28 image to 1D
 	])
 	cifar = CIFAR10(args.data_dir, train=True, transform=transform, download=True)
-	dataset = DataLoader(dataset=cifar, batch_size=args.batch_size, shuffle=True)
+	dataset = DataLoader(dataset=cifar, batch_size=args.batch_size, shuffle=True, drop_last=True)
 
 	# model setup
 	cvae = CVAE(input_channel=args.input_channel, condition_dim=args.num_classes, latent_dim=args.latent_size).to(device)
@@ -112,10 +120,10 @@ def train(args):
 			c = nn.functional.one_hot(y, num_classes=args.num_classes).float().to(device) # one-hot encoding
 
 			# test
-			# print(x[0])
-			# print("")
-			# test_reverse(x, args)
-			# exit(0)
+			print(x[0])
+			print("")
+			test_reverse(x, args)
+			exit(0)
 
 
 			""" update Discriminator """
@@ -126,6 +134,11 @@ def train(args):
 				real_labels = torch.full((x.size(0),), real_label, dtype=torch.float, device=device).unsqueeze(-1)
 				z = torch.randn(x.size(0), args.latent_size, device=device)
 				x_fake = cvae.inference(z, c)
+				
+				# shp = x_fake.size() #test
+				# for i in range(len(shp)):
+				# 	print(shp[i]) # (bs, 3, 64, 64)
+				# 	pass
 				fake_validity = discriminator(x_fake.detach(), c)  # fixed...
 				fake_labels = torch.full((x.size(0),), fake_label, dtype=torch.float, device=device).unsqueeze(-1)
 
@@ -153,16 +166,15 @@ def train(args):
 		g_avg_loss = g_epoch_loss / (len(dataset)*args.gd_ratio)
 		d_avg_loss = d_epoch_loss
 		# tracker = {"epoch" : None, "criterion" : None}
-		if tracker["criterion"] is None or g_avg_loss < tracker["criterion"]:
-			tracker["epoch"] = epoch + 1
-			tracker["criterion"] = g_avg_loss
-			torch.save(cvae.state_dict(), args.model_path)
-			pass
+		# if tracker["criterion"] is None or g_avg_loss < tracker["criterion"]:
+		# 	tracker["epoch"] = epoch + 1
+		# 	tracker["criterion"] = g_avg_loss
+		torch.save(cvae.state_dict(), args.model_path)
 		logger.write(f"Epoch {epoch + 1}/{args.epochs}, D_loss: {d_avg_loss:.6f}, G_Loss: {g_avg_loss:.6f}\n")
 
 	# end Training
 	logger.write("\n\nTraining completed\n\n")
-	logger.write(f"Best Epoch: {tracker['epoch']}, average loss:{tracker['criterion']}\n")
+	# logger.write(f"Best Epoch: {tracker['epoch']}, average loss:{tracker['criterion']}\n")
 	if os.path.exists(args.model_path):
 		logger.write(f"model with the best performance saved to {args.model_path}.")
 	# close

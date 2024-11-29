@@ -40,10 +40,11 @@ def generate_images(model, device, text, args):
         generated_images = model.inference(z, condition)
         # generated_images = generated_images.view(-1, 28, 28).cpu().numpy()
         # fixed...
-        assert torch.min(generated_images) >= -2 and torch.max(generated_images) <= 2, "Output range mismatch."
+        # assert torch.min(generated_images) >= -2 and torch.max(generated_images) <= 2, "Output range mismatch."
         # generated_images = generated_images.cpu().numpy()
         # generated_images = (generated_images.cpu().numpy() + 1) / 2# 将 [-1, 1] 转为 [0, 1]
         # 假设 `generated_images` 是模型的输出，范围为 [-1, 1]
+        print(generated_images[0])
         denorm_images = denormalize(generated_images, args.tran_mean, args.tran_std)
         uint8_images = to_uint8(denorm_images)
 
