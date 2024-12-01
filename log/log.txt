@@ -1,2 +1,27 @@
-we're using :: cpu
+we're using :: cuda
 
+Epoch 1/20, D_loss: 1.483588, G_Loss: 17.783829
+Epoch 2/20, D_loss: 0.480024, G_Loss: 2.330386
+Epoch 3/20, D_loss: 0.800261, G_Loss: 1.493745
+Epoch 4/20, D_loss: 0.566977, G_Loss: 0.609025
+Epoch 5/20, D_loss: 0.608876, G_Loss: 0.580053
+Epoch 6/20, D_loss: 0.644296, G_Loss: 0.740820
+Epoch 7/20, D_loss: 0.452694, G_Loss: 0.945383
+Epoch 8/20, D_loss: 0.371916, G_Loss: 0.744934
+Epoch 9/20, D_loss: 0.870161, G_Loss: 0.501543
+Epoch 10/20, D_loss: 0.493394, G_Loss: 0.908310
+Epoch 11/20, D_loss: 0.379848, G_Loss: 1.239635
+Epoch 12/20, D_loss: 0.719766, G_Loss: 2.150635
+Epoch 13/20, D_loss: 0.337056, G_Loss: 1.457888
+Epoch 14/20, D_loss: 0.605465, G_Loss: 0.761205
+Epoch 15/20, D_loss: 0.436129, G_Loss: 0.719095
+Epoch 16/20, D_loss: 0.788983, G_Loss: 0.581067
+Epoch 17/20, D_loss: 0.507561, G_Loss: 0.549880
+Epoch 18/20, D_loss: 0.323931, G_Loss: 0.656473
+Epoch 19/20, D_loss: 0.245266, G_Loss: 0.880260
+Epoch 20/20, D_loss: 0.081094, G_Loss: 0.926108
+
+
+Training completed
+
+model with the best performance saved to cvae_model.pth.

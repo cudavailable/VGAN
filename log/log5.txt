@@ -1,0 +1,59 @@
+we're using :: cuda
+
+pretrained model: cvae_model.pth
+
+Epoch 1/50, D_loss: 0.716369, G_Loss: 0.846044
+Epoch 2/50, D_loss: 0.806856, G_Loss: 1.098338
+Epoch 3/50, D_loss: 0.632992, G_Loss: 0.636184
+Epoch 4/50, D_loss: 0.714125, G_Loss: 0.596125
+Epoch 5/50, D_loss: 0.672153, G_Loss: 0.537961
+Epoch 6/50, D_loss: 0.589216, G_Loss: 0.513342
+Epoch 7/50, D_loss: 0.638142, G_Loss: 0.563165
+Epoch 8/50, D_loss: 0.635732, G_Loss: 0.579849
+Epoch 9/50, D_loss: 0.447110, G_Loss: 0.598875
+Epoch 10/50, D_loss: 0.552163, G_Loss: 0.787911
+Epoch 11/50, D_loss: 0.832879, G_Loss: 0.503332
+Epoch 12/50, D_loss: 0.403020, G_Loss: 0.534270
+Epoch 13/50, D_loss: 0.338007, G_Loss: 0.661265
+Epoch 14/50, D_loss: 0.263175, G_Loss: 0.741830
+Epoch 15/50, D_loss: 0.203331, G_Loss: 0.865999
+Epoch 16/50, D_loss: 0.846016, G_Loss: 0.683967
+Epoch 17/50, D_loss: 0.401424, G_Loss: 0.552667
+Epoch 18/50, D_loss: 0.198552, G_Loss: 0.711313
+Epoch 19/50, D_loss: 0.124986, G_Loss: 0.841239
+Epoch 20/50, D_loss: 0.075393, G_Loss: 0.868243
+Epoch 21/50, D_loss: 0.058422, G_Loss: 0.939824
+Epoch 22/50, D_loss: 0.080201, G_Loss: 1.053412
+Epoch 23/50, D_loss: 0.045851, G_Loss: 1.144832
+Epoch 24/50, D_loss: 0.560222, G_Loss: 1.019953
+Epoch 25/50, D_loss: 0.353948, G_Loss: 0.816526
+Epoch 26/50, D_loss: 0.272855, G_Loss: 0.686906
+Epoch 27/50, D_loss: 0.254962, G_Loss: 1.064196
+Epoch 28/50, D_loss: 0.241696, G_Loss: 0.969526
+Epoch 29/50, D_loss: 0.038485, G_Loss: 1.004036
+Epoch 30/50, D_loss: 0.031324, G_Loss: 1.135843
+Epoch 31/50, D_loss: 0.032423, G_Loss: 1.043951
+Epoch 32/50, D_loss: 0.020482, G_Loss: 1.191719
+Epoch 33/50, D_loss: 0.015250, G_Loss: 1.180572
+Epoch 34/50, D_loss: 0.693484, G_Loss: 1.000372
+Epoch 35/50, D_loss: 0.375464, G_Loss: 0.500558
+Epoch 36/50, D_loss: 0.178135, G_Loss: 0.728360
+Epoch 37/50, D_loss: 0.165353, G_Loss: 0.804204
+Epoch 38/50, D_loss: 0.167829, G_Loss: 0.977488
+Epoch 39/50, D_loss: 0.060276, G_Loss: 0.974242
+Epoch 40/50, D_loss: 0.166691, G_Loss: 1.100951
+Epoch 41/50, D_loss: 0.553561, G_Loss: 0.855642
+Epoch 42/50, D_loss: 0.142835, G_Loss: 0.918047
+Epoch 43/50, D_loss: 0.063532, G_Loss: 1.066341
+Epoch 44/50, D_loss: 0.049688, G_Loss: 1.086724
+Epoch 45/50, D_loss: 0.015099, G_Loss: 1.214089
+Epoch 46/50, D_loss: 0.018015, G_Loss: 1.148150
+Epoch 47/50, D_loss: 0.015218, G_Loss: 1.238539
+Epoch 48/50, D_loss: 0.012058, G_Loss: 1.265777
+Epoch 49/50, D_loss: 0.015339, G_Loss: 1.245566
+Epoch 50/50, D_loss: 0.006546, G_Loss: 1.359448
+
+
+Training completed
+
+model with the best performance saved to cvae_model.pth.
