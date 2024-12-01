@@ -1,8 +1,9 @@
 import os
 import torch
 import numpy as np
-from model import CVAE
+from model_pro import CVAE
 from PIL import Image
+import torchvision.utils as utils
 import matplotlib.pyplot as plt
 import matplotlib
 matplotlib.use('Agg')  # 使用无界面后端
@@ -29,19 +30,19 @@ def denormalize(tensor, mean=(0.5, 0.5, 0.5), std=(0.5, 0.5, 0.5)):
 def to_uint8(tensor):
     return (tensor * 255).byte()
 
-def generate_images(model, device, text, args):
-    digit = class_dict[text] # int
+def generate_images(model, device, digit, args):
+    # digit = class_dict[text] # int
     model.eval()
     with torch.no_grad():
         condition = torch.nn.functional.one_hot(
-            torch.tensor([digit] * args.num_classes), num_classes=10
+            torch.tensor([digit] * args.num_classes), num_classes=args.num_classes
         ).float().to(device)
         z = torch.randn((args.num_classes, args.latent_size)).to(device)  # Random latent vectors
         generated_images = model.inference(z, condition)
         # generated_images = generated_images.view(-1, 28, 28).cpu().numpy()
         # fixed...
         # assert torch.min(generated_images) >= -2 and torch.max(generated_images) <= 2, "Output range mismatch."
-        # generated_images = generated_images.cpu().numpy()
+        generated_images = torch.from_numpy(generated_images.cpu().numpy())
         # generated_images = (generated_images.cpu().numpy() + 1) / 2# 将 [-1, 1] 转为 [0, 1]
         # 假设 `generated_images` 是模型的输出，范围为 [-1, 1]
         print(generated_images[0])
@@ -54,7 +55,7 @@ def generate_images(model, device, text, args):
         # Plot images
         if args.recon_dir is not None and not os.path.exists(args.recon_dir):
             os.mkdir(args.recon_dir)
-        digit_path = os.path.join(args.recon_dir, text)
+        digit_path = os.path.join(args.recon_dir, str(digit))
         if digit_path is not None and not os.path.exists(digit_path):
             os.mkdir(digit_path)
 
@@ -82,8 +83,8 @@ def infer(args):
     # model setup
     model = CVAE(input_channel=args.input_channel, condition_dim=args.num_classes, latent_dim=args.latent_size).to(device)
     try:
-        model.load_state_dict(torch.load(args.model_path, map_location=torch.device('cpu')))
-        # model.load_state_dict(torch.load(args.model_path))
+        # model.load_state_dict(torch.load(args.model_path, map_location=torch.device('cpu')))
+        model.load_state_dict(torch.load(args.model_path))
     except FileNotFoundError:
         print(f"Error: Model file not found at {args.model_path}")
         return
@@ -91,9 +92,11 @@ def infer(args):
     print(f"Model loaded from {args.model_path}")
 
     # 根据输入的文本，生成对应的图片
-    text = str(input("请输入要生成图片的类型：")).lower() # 输入对应英文单词
-    while text not in class_dict.keys():
-        text = input(f"无效类别，请输入以下之一: {list(class_dict.keys())}\n")
-    generate_images(model, device, text=text, args=args)
+    # text = str(input("请输入要生成图片的类型：")).lower() # 输入对应英文单词
+    # while text not in class_dict.keys():
+    #     text = input(f"无效类别，请输入以下之一: {list(class_dict.keys())}\n")
+    digit = int(input("请输入要生成图片的类型："))
+    # while not (0 <= digit < args.num_classe)
+    generate_images(model, device, digit, args=args)
 
     pass

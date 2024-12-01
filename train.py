@@ -1,18 +1,17 @@
 import os
 import torch
 from torch import nn
-from torchvision.datasets import CIFAR10
-from torchvision import transforms
-from torch.utils.data import DataLoader
+# from torchvision.datasets import CIFAR10, STL10
 
-from model import CVAE, Discriminator
+from model_pro import CVAE, Discriminator
 from logger import Logger
+from dataset import get_dataloader
 
 from matplotlib import pyplot as plt
 from inference import denormalize, to_uint8
 from PIL import Image
 
-def test_reverse(x, args):
+def test_reverse(x, y, args):
 	denorm_images = denormalize(x[0:3], mean=args.tran_mean, std=args.tran_std)
 	uint8_images = to_uint8(denorm_images)
 	print(uint8_images[0])
@@ -28,7 +27,7 @@ def test_reverse(x, args):
 
 		plt.imshow(img)
 		plt.axis('off')
-		plt.savefig(f'#{i + 1}.png')
+		plt.savefig(f'#{y[i]}.png')
 		plt.close()  # 保存后再关闭
 
 	print(f"generated images saved to {args.recon_dir}")
@@ -43,9 +42,9 @@ def loss_G(x_recon, x, mean, log, fake_validity, real_labels, args):
 
 	adv_loss = nn.BCELoss()(fake_validity, real_labels)
 
-	recon_loss *= args.w_recon
-	kl_div *= args.w_kl
-	adv_loss *= args.w_adv
+	recon_loss = recon_loss * args.w_recon
+	kl_div = kl_div * args.w_kl
+	adv_loss = adv_loss * args.w_adv
 
 	# weight to be fixed...
 	print(f"recon: {recon_loss:.6f}, kl: {kl_div:.6f}, adv: {adv_loss:.6f}, x0: {x.size(0)}")
@@ -65,26 +64,23 @@ def train(args):
 	global real_labels
 	if args.log_dir is not None and not os.path.exists(args.log_dir):
 		os.makedirs(args.log_dir)
-	logger = Logger(os.path.join(args.log_dir, "log.txt"))
+	logger = Logger(os.path.join(args.log_dir, args.log_path))
 
 	# keep the best model parameters according to avg_loss
-	tracker = {"epoch" : None, "criterion" : None}
+	# tracker = {"epoch" : None, "criterion" : None}
 
 	# device setup
 	device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 	logger.write(f"we're using :: {device}\n\n")
 
 	# data preparations
-	transform = transforms.Compose([
-		transforms.RandomHorizontalFlip(),
-    	transforms.RandomRotation(15),
-    	transforms.ColorJitter(brightness=0.2, contrast=0.2, saturation=0.2, hue=0.1),
-		transforms.ToTensor(),
-		transforms.Normalize(mean=args.tran_mean, std=args.tran_std),
-		# transforms.Lambda(lambda x : x.view(-1)) # flatten the 28x28 image to 1D
-	])
-	cifar = CIFAR10(args.data_dir, train=True, transform=transform, download=True)
-	dataset = DataLoader(dataset=cifar, batch_size=args.batch_size, shuffle=True, drop_last=True)
+	# transform = transforms.Compose([
+	# 	transforms.ToTensor(),
+	# 	transforms.Normalize(mean=args.tran_mean, std=args.tran_std),
+	# ])
+	# cifar = CIFAR10(args.data_dir, train=True, transform=transform, download=True)
+	# dataset = DataLoader(dataset=cifar, batch_size=args.batch_size, shuffle=True, drop_last=True)
+	dataset, class_idx  = get_dataloader(args)
 
 	# model setup
 	cvae = CVAE(input_channel=args.input_channel, condition_dim=args.num_classes, latent_dim=args.latent_size).to(device)
@@ -92,90 +88,90 @@ def train(args):
 	optim_G = torch.optim.Adam(cvae.parameters(), lr=args.g_lr, betas=(0.5, 0.999))
 	optim_D = torch.optim.Adam(discriminator.parameters(), lr=args.d_lr, betas=(0.5, 0.999))
 
+	if args.preTrain == True:
+		cvae.load_state_dict(torch.load("cvae_model.pth"))
+		# 打印模型的一个参数，检查加载是否成功
+		for name, param in cvae.named_parameters():
+			print(f"{name}: {len(param.data)}")
+			break
+		logger.write(f"pretrained model: {args.model_path}\n\n")
+		
+
 	real_label = 1.0 # fixed...
 	fake_label = 0.0
 
 	# Training
 	cvae.train()
 	discriminator.train()
-	# d_train = True
 	for epoch in range(args.epochs):
-
-		# 每隔一个epoch，先冻结判别器，只训练生成器
-		# if epoch % 2 == 0:
-		# 	d_train = False
-		# 	for param in discriminator.parameters():
-		# 		param.requires_grad = False
-		# else:
-		# 	for param in discriminator.parameters():
-		# 		param.requires_grad = True
 
 		g_epoch_loss = 0
 		d_epoch_loss = 0
 
-		step_counter = 0
+		# step_counter = 0
 
 		for x, y in dataset:
+
 			x, y = x.to(device), y.to(device)
 			c = nn.functional.one_hot(y, num_classes=args.num_classes).float().to(device) # one-hot encoding
 
-			# test
-			print(x[0])
-			print("")
-			test_reverse(x, args)
-			exit(0)
+			real_labels = torch.full((x.size(0),), real_label, dtype=torch.float, device=device).unsqueeze(-1)
+			fake_labels = torch.full((x.size(0),), fake_label, dtype=torch.float, device=device).unsqueeze(-1)
+
+			## test
+			# print(x[0])
+			# print("")
+			# test_reverse(x, y, args)
+			# exit(0)
+
+			# if step_counter == 0:
+			optim_D.zero_grad()
+			optim_G.zero_grad()
+
+			""" 数据准备1 """
+			# 真实图像进行判别
+			vd_r = discriminator(x, c)
+
+			""" 数据准备2 """
+			# 生成潜在向量
+			z = torch.randn(x.size(0), args.latent_size, device=device)
+			# 潜在向量z生成图像，并判别
+			x_p = cvae.inference(z, c)
+			vd_p = discriminator(x_p.detach(), c)  # fixed...
 
 
 			""" update Discriminator """
-			if step_counter == 0:
-				optim_D.zero_grad()
+			d_loss = loss_D(vd_r, real_labels, vd_p, fake_labels)
+			d_loss.backward(retain_graph=True)
+			optim_D.step()
 
-				real_validity = discriminator(x, c)
-				real_labels = torch.full((x.size(0),), real_label, dtype=torch.float, device=device).unsqueeze(-1)
-				z = torch.randn(x.size(0), args.latent_size, device=device)
-				x_fake = cvae.inference(z, c)
-				
-				# shp = x_fake.size() #test
-				# for i in range(len(shp)):
-				# 	print(shp[i]) # (bs, 3, 64, 64)
-				# 	pass
-				fake_validity = discriminator(x_fake.detach(), c)  # fixed...
-				fake_labels = torch.full((x.size(0),), fake_label, dtype=torch.float, device=device).unsqueeze(-1)
-
-				d_loss = loss_D(real_validity, real_labels, fake_validity, fake_labels)
-				d_loss.backward()
-				optim_D.step()
-
-				d_epoch_loss += d_loss.item()
+			d_epoch_loss += d_loss.item()
 
 			""" update generator """
 			for _ in range(args.gd_ratio):
-				optim_G.zero_grad()
-				x_recon, m, log = cvae(x, c)
-				fake_validity = discriminator(x_recon, c) # fixed...
-				g_loss = loss_G(x_recon, x, m, log, fake_validity, real_labels, args)
+				""" 数据准备3 """
+				x_f, m, log = cvae(x, c)
+				vd_f = discriminator(x_f, c)  # fixed...
+				g_loss = loss_G(x_f, x, m, log, vd_f, real_labels, args)
 				g_loss.backward()
 				optim_G.step()
 
 				g_epoch_loss += g_loss.item()
 
 			# update counter
-			step_counter += 1
+			# step_counter += 1
 
 		# keep the best model parameters according to avg_loss
-		g_avg_loss = g_epoch_loss / (len(dataset)*args.gd_ratio)
-		d_avg_loss = d_epoch_loss
-		# tracker = {"epoch" : None, "criterion" : None}
-		# if tracker["criterion"] is None or g_avg_loss < tracker["criterion"]:
-		# 	tracker["epoch"] = epoch + 1
-		# 	tracker["criterion"] = g_avg_loss
+		g_avg_loss = g_epoch_loss / (len(dataset) * args.gd_ratio)
+		d_avg_loss = d_epoch_loss / len(dataset)
+
 		torch.save(cvae.state_dict(), args.model_path)
+		torch.save(discriminator.state_dict(), args.D_path)
 		logger.write(f"Epoch {epoch + 1}/{args.epochs}, D_loss: {d_avg_loss:.6f}, G_Loss: {g_avg_loss:.6f}\n")
 
 	# end Training
 	logger.write("\n\nTraining completed\n\n")
-	# logger.write(f"Best Epoch: {tracker['epoch']}, average loss:{tracker['criterion']}\n")
 	if os.path.exists(args.model_path):
-		logger.write(f"model with the best performance saved to {args.model_path}.")
+		logger.write(f"model with the best performance saved to {args.model_path}.\n")
 	# close
 	logger.close()
